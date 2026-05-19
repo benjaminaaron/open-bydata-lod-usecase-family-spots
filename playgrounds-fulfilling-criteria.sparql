@@ -1,0 +1,21 @@
+PREFIX dev: <https://open.bydata.de/api/hub/dev#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX schema: <http://schema.org/>
+
+SELECT
+    ?playground
+    ?playgroundDataLastUpdated
+    (GROUP_CONCAT(DISTINCT ?toiletId; separator=", ") AS ?toilets)
+    (GROUP_CONCAT(DISTINCT ?cafeName; separator=", ") AS ?cafes)
+WHERE {
+    ?p a dev:Playground ;
+        dct:modified ?playgroundDataLastUpdated ;
+        dct:title ?playground ;
+        dev:hasNearbyToilet ?toilet ;
+        dev:hasNearbyCafe ?cafe .
+
+    BIND(REPLACE(STR(?toilet), "^.*[#/]", "") AS ?toiletId)
+
+    ?cafe schema:name ?cafeName .
+}
+GROUP BY ?playground ?playgroundDataLastUpdated

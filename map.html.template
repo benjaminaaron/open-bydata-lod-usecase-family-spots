@@ -1,0 +1,33 @@
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Playgrounds with toilets and cafes within 200m in Munich</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        <style>
+            html, body, #map {
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            const points = {{POINTS}}
+
+            const map = L.map("map")
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map)
+            const group = L.featureGroup()
+            for (const p of points) {
+                L.circleMarker([p.lat, p.lon], {
+                    radius: 6,
+                    fillColor: p.color,
+                    color: p.color,
+                    fillOpacity: 1,
+                }).addTo(group)
+            }
+            group.addTo(map)
+            map.fitBounds(group.getBounds().pad(0.25))
+        </script>
+    </body>
+</html>
