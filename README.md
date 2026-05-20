@@ -18,7 +18,7 @@ Spielplätze in München finden, die mindestens eine öffentliche Toilette und m
 
 ## Vorgehensweise
 
-[Transformation zu RDF und Verschmelzung](build-graph.js) zu einem [Wissensgraphen](triples.ttl). Dazu wurde ein in-memory Triple Store schrittweise angereichert mit den drei „RDFizierten“ Datensätzen (Spielplätze + Metadaten und WCs) und dann wurden die Result-Triples von OSM direkt per SPARQL UPDATE überführt. Comunica, das JavaScript-Framework, das hier für die Queries benutzt wurde, hat im Gegensatz zu Virtuoso keine nativen Geo-Funktionen eingebaut. Daher wurde eine Funktion zur Distanzberechnung per `extensionFunctions` direkt zur QueryEngine hinzugefügt, um sie dann aus der SPARQL-Query heraus nutzen zu können.
+[Transformation zu RDF und Verschmelzung](src/build-graph.js) zu einem [Wissensgraphen](src/triples.ttl). Dazu wurde ein in-memory Triple Store schrittweise angereichert mit den drei „RDFizierten“ Datensätzen (Spielplätze + Metadaten und WCs) und dann wurden die Result-Triples von OSM direkt per SPARQL UPDATE überführt. Comunica, das JavaScript-Framework, das hier für die Queries benutzt wurde, hat im Gegensatz zu Virtuoso keine nativen Geo-Funktionen eingebaut. Daher wurde eine Funktion zur Distanzberechnung per `extensionFunctions` direkt zur QueryEngine hinzugefügt, um sie dann aus der SPARQL-Query heraus nutzen zu können.
 
 Um Trios von Spielplätzen mit nahgelegenen Toiletten und Cafés zu finden, müssen in diesem Fall zwei Distanzen berechnet werden: Spielplatz zu Toilette und Spielplatz zu Café. Um die hierfür erforderliche Rechnenleistung zu minimieren, wurden die Distanzberechnungen auf zwei Queries aufgeteilt und die jeweiligen Treffer (Distanzen unter 200 m) an den Triples der Spielplätze „Hinweise“ angehängt: `dev:hasNearbyToilet` und `dev:hasNearbyCafe`.
 
@@ -41,7 +41,7 @@ dev:wc_finder_opendata.34 a dev:PublicToilet;
   geo:lat 48.15107232457436; geo:long 11.607848569920932.
 ```
 
-Nun können die angereicherten Hinweise genutzt werden, um die Trios einzusammeln ([SPARQL-Query](playgrounds-fulfilling-criteria.sparql)). Das Ergebnis sind 24 Spielplätze in München, die die gewünschten Kriterien erfüllen:
+Nun können die angereicherten Hinweise genutzt werden, um die Trios einzusammeln ([SPARQL-Query](src/playgrounds-fulfilling-criteria.sparql)). Das Ergebnis sind 24 Spielplätze in München, die die gewünschten Kriterien erfüllen:
 
 | playground | lastUpdated | toilets | cafes |
 | --- | --- | --- | --- |
@@ -49,6 +49,8 @@ Nun können die angereicherten Hinweise genutzt werden, um die Trios einzusammel
 | Spielplatz "Hochäckerstraße" | 2024-08-29 | wc_finder_opendata.284 | Jugendcafé |
 | … | … | … | … |
 
-Alle gefundenen Orte können in einer [interaktiven Karte](map.html) eingesehen werden (erzeugt mit [map.js](map.js)) bzw. über den Screenshot unten. Zur Erklärung: Spielplätze sind gelb, Toiletten rot und Cafés blau. Manche Spots haben mehrere Toiletten und Cafés, die weniger als 200 m von „ihrem“ Spielplatz entfernt sind:
+Alle gefundenen Orte können in einer [interaktiven Karte](src/map.html) eingesehen werden (erzeugt mit [map.js](src/map.js)) bzw. über den Screenshot unten. Zur Erklärung: Spielplätze sind gelb, Toiletten rot und Cafés blau. Manche Spots haben mehrere Toiletten und Cafés, die weniger als 200 m von „ihrem“ Spielplatz entfernt sind:
 
-![Familienfreundliche Spielplätze in München](screenshot.jpg)
+![Familienfreundliche Spielplätze in München](img/screenshot.jpg)
+
+Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem Anwendungsfall findet man in [diesem Repo](https://github.com/bydata/open-bydata-lod-usecases).
