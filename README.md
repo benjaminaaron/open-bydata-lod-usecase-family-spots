@@ -54,3 +54,6 @@ Alle gefundenen Orte können in einer [interaktiven Karte](src/map.html) eingese
 ![Familienfreundliche Spielplätze in München](img/screenshot.jpg)
 
 Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem Anwendungsfall findet man in [diesem Repo](https://github.com/bydata/open-bydata-lod-usecases).
+
+## Autoren
+Dieser Code wurde von [Benjamin Degenhart](https://github.com/benjaminaaron) in Zusammenarbeit mit oc.bydata erstellt.
