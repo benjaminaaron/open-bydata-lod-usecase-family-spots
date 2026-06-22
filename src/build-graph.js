@@ -9,11 +9,10 @@ import fs from "fs"
 // we reuse the already downloaded and processed playgrounds and toilet files
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.join(THIS_DIR, "..", "..")
-const PLAYGROUNDS_TTL = path.join(PROJECT_ROOT, "experiments", "output", "04-csv-to-rdf", "240826-spielplaetze.ttl")
-const PLAYGROUNDS_DISTRIBUTION_TTL = "https://open.bydata.de/api/hub/repo/distributions/4808588b-a630-4c71-a1af-814707c52e79.ttl"
-const TOILETS_TTL = path.join(PROJECT_ROOT, "experiments", "output", "05-postprocess-generated-rdf", "wc_finder_opendata_postprocessed.ttl")
-const TOILETS_DISTRIBUTION_TTL = "https://open.bydata.de/api/hub/repo/distributions/e215e9ca-5ea7-41a7-8469-e53e2e2e8043.ttl"
+const PLAYGROUNDS_TTL = path.join(THIS_DIR, "inputs", "240826-spielplaetze.ttl")
+const PLAYGROUNDS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "playgrounds-distribution.ttl")
+const TOILETS_TTL = path.join(THIS_DIR, "inputs", "wc_finder_opendata_postprocessed.ttl")
+const TOILETS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "toilets-distribution.ttl")
 const OSM_ENDPOINT = "https://qlever.dev/api/osm-planet"
 const OUTPUT_TTL = path.join(THIS_DIR, "triples.ttl")
 export const prefixes = {
@@ -143,6 +142,7 @@ query = `
         FILTER(?distPtoT < ${MAX_DIST})
     }`
 // needs ~1min10sec on a MacBook Air M4
+console.log("Computing nearby toilets and cafes — the two distance queries take a few minutes...")
 await engine.queryVoid(query, {
     sources: [store],
     extensionFunctions: { "https://open.bydata.de/api/hub/dev#calcDistance": calcDistanceExtension }

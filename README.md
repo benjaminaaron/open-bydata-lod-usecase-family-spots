@@ -55,5 +55,21 @@ Alle gefundenen Orte können in einer [interaktiven Karte](src/map.html) eingese
 
 Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem Anwendungsfall findet man in [diesem Repo](https://github.com/bydata/open-bydata-lod-usecases).
 
+## Code ausführen
+
+**Um die Ergebnisse zu sehen, muss nichts ausgeführt werden.** Die interaktive Karte (einfach [`src/map.html`](src/map.html) im Browser öffnen), der fertige Wissensgraph [`src/triples.ttl`](src/triples.ttl) und der Screenshot (siehe oben) liegen bereits im Repo.
+
+**Queries selbst ausführen** (verändert nichts am Repo): Den Wissensgraphen [`src/triples.ttl`](src/triples.ttl) in eine Graph-Datenbank importieren und die Analyse-Query [`playgrounds-fulfilling-criteria.sparql`](src/playgrounds-fulfilling-criteria.sparql) im SPARQL-Editor der Graph-Datenbank ausführen.
+
+**Graph und Karte neu erzeugen** (überschreibt die mitgelieferten Dateien):
+
+```bash
+npm install
+node src/build-graph.js   # baut src/triples.ttl aus den Eingabedaten in src/inputs/ + Cafés live via OpenStreetMap
+node src/map.js           # erzeugt src/map.html aus src/triples.ttl neu
+```
+
+`build-graph.js` liest die vorbereiteten Spielplatz- und WC-Daten samt zugehöriger DCAT-Metadaten aus [`src/inputs/`](src/inputs) und reichert sie um Cafés an, die live über den QLever-OSM-Endpunkt abgefragt werden. Die RDF-Konvertierung dieser Daten fand bereits in einer früheren Projektphase statt, bevor dieses Repo für den Anwendungsfall eingerichtet wurde. Die DCAT-Metadaten liegen als lokale Snapshots in `src/inputs/`, da die zugehörigen open.bydata-Distributions-URLs nicht stabil sind (eine davon ist inzwischen nicht mehr abrufbar). Die Café-Daten spiegeln den aktuellen OSM-Stand wider und können daher leicht vom mitgelieferten Snapshot abweichen.
+
 ## Autoren
 Dieser Code wurde von [Benjamin Degenhart](https://github.com/benjaminaaron) in Zusammenarbeit mit oc.bydata erstellt.

@@ -1,0 +1,20 @@
+PREFIX adms:     <http://www.w3.org/ns/adms#>
+PREFIX dcat:     <http://www.w3.org/ns/dcat#>
+PREFIX dcatapde: <http://dcat-ap.de/def/dcatde/>
+PREFIX dct:      <http://purl.org/dc/terms/>
+PREFIX rdf:      <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+<https://open.bydata.de/api/hub/repo/distributions/b7754bf1-c799-47bf-8f1a-8cfad0abe9ee>
+        rdf:type                      dcat:Distribution;
+        dcatapde:plannedAvailability  <http://dcat-ap.de/def/plannedAvailability/stable>;
+        dct:format                    <http://publications.europa.eu/resource/authority/file-type/CSV>;
+        dct:identifier                "https://opendata.muenchen.de/dataset/oeffentliche-spielplaetze-muenchen/resource/845ce3bd-ea80-4623-b51d-a30680175c22";
+        dct:issued                    "2016-06-14T10:49:47Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+        dct:license                   <http://dcat-ap.de/def/licenses/dl-by-de/2.0>;
+        dct:modified                  "2024-08-29T06:19:58Z"^^<http://www.w3.org/2001/XMLSchema#dateTime>;
+        dct:title                     "Öffentliche Spielplätze in München"@de;
+        adms:status                   <http://purl.org/adms/status/Completed>;
+        dcat:accessURL                <https://opendata.muenchen.de/dataset/0760ce3a-fef8-43e4-888f-8cc92fdf56de/resource/845ce3bd-ea80-4623-b51d-a30680175c22/download/240826-spielplaetze.csv>;
+        dcat:byteSize                 "285939"^^<http://www.w3.org/2001/XMLSchema#decimal>;
+        dcat:downloadURL              <https://opendata.muenchen.de/dataset/0760ce3a-fef8-43e4-888f-8cc92fdf56de/resource/845ce3bd-ea80-4623-b51d-a30680175c22/download/240826-spielplaetze.csv>;
+        dcat:mediaType                <https://www.iana.org/assignments/media-types/text/csv> .

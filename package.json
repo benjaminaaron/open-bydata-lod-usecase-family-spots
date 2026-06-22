@@ -1,0 +1,13 @@
+{
+  "name": "open-bydata-lod-usecase-family-spots",
+  "type": "module",
+  "dependencies": {
+    "@comunica/query-sparql-file": "^4.5.0",
+    "@foerderfunke/sem-ops-utils": "0.3.8",
+    "haversine-distance": "^1.2.4",
+    "rdf-data-factory": "^2.0.2"
+  },
+  "overrides": {
+    "shacl-engine": "git+https://github.com/rdf-ext/shacl-engine.git#b067ffaf1a041a9f5f7515df00bf476b3a52617c"
+  }
+}
