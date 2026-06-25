@@ -1,4 +1,4 @@
-# LOD Usecase Family Spots – Familienfreundliches München: Spielplätze mit nahegelegenen Toiletten und Cafés
+# LOD Use Case Family Spots – Familienfreundliches München: Spielplätze mit nahegelegenen Toiletten und Cafés
 
 ## Ausgangsfrage
 
