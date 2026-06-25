@@ -1,8 +1,13 @@
 # LOD Use Case Family Spots – Familienfreundliches München: Spielplätze mit nahegelegenen Toiletten und Cafés
 
-## Ausgangsfrage
+## Einleitung
 
-Spielplätze in München finden, die mindestens eine öffentliche Toilette und mindestens ein Café in einem 200 m-Radius haben und damit die Bedürfnisse von Familien besonders gut abdecken.
+Dieser Use Case identifiziert besonders familienfreundliche Spielplätze, die innerhalb eines Radius von 200 Metern sowohl über mindestens eine öffentliche Toilette als auch ein Café verfügen.
+ 
+Background-Info:
+Hierfür wurden offene Datensätze der Landeshauptstadt München zu Spielplätzen und öffentlichen Toiletten mit Café-Daten aus OpenStreetMap zusammengeführt. Nach der Transformation der heterogenen Daten in RDF wurde ein Wissensgraph aufgebaut, der um geografische Distanzberechnungen erweitert wurde.
+ 
+Die Ergebnisse liefern eine praxisnahe, datenbasierte Entscheidungsgrundlage zur weiteren Planung familienfreundlicher Infrastruktur (z. B. Bau weiterer Toiletten an geeigneten Standorten) und eine Hilfe für Familien, für ihre Bedürfnisse ausgestattete Spielplätze zu identifizieren.
 
 ## Datensätze & Lizenzen
 
