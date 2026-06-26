@@ -6,17 +6,20 @@ import { fileURLToPath } from "url"
 import path from "path"
 import fs from "fs"
 
-// we reuse the already downloaded and processed playgrounds and toilet files
+// the playgrounds file is reused as-is; toilets, cafes and fountains are fetched live
 
 const THIS_DIR = path.dirname(fileURLToPath(import.meta.url))
 const PLAYGROUNDS_TTL = path.join(THIS_DIR, "inputs", "240826-spielplaetze.ttl")
 const PLAYGROUNDS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "playgrounds-distribution.ttl")
-const TOILETS_TTL = path.join(THIS_DIR, "inputs", "wc_finder_opendata_postprocessed.ttl")
 const TOILETS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "toilets-distribution.ttl")
 const FOUNTAINS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "trinkbrunnen-distribution.ttl")
-// "Stadtplan der städtischen Trinkbrunnen" of the Landeshauptstadt München, fetched live
-// from the GeoJSON distribution (open.bydata dataset 7e8484f0-12c2-40be-bd0c-cfe04f63a624).
-// The WFS serves WGS84 lat/long directly when we request srsName=EPSG:4326.
+// Two Landeshauptstadt München datasets fetched live as GeoJSON from the Geoportal WFS:
+// "WC-Standorte" (open.bydata 80832bca-499b-4b24-bb41-9e77f0ef31ee) and "Stadtplan der
+// städtischen Trinkbrunnen" (7e8484f0-12c2-40be-bd0c-cfe04f63a624). The WFS serves WGS84
+// lat/long directly when we request srsName=EPSG:4326.
+const TOILETS_GEOJSON_URL = "https://geoportal.muenchen.de/geoserver/gsm_wfs/ows"
+    + "?service=WFS&version=1.0.0&request=GetFeature&typeName=gsm_wfs:wc_finder_opendata"
+    + "&outputFormat=application/json&srsName=EPSG:4326"
 const FOUNTAINS_GEOJSON_URL = "https://geoportal.muenchen.de/geoserver/baug_wfs/ows"
     + "?service=WFS&version=1.0.0&request=GetFeature&typeName=baug_wfs:trinkwasserbrunnen"
     + "&outputFormat=application/json&srsName=EPSG:4326"
@@ -34,6 +37,10 @@ export const prefixes = {
 const engine = new QueryEngine()
 const DF = new DataFactory()
 const store = newStore()
+
+// shared helpers for building triples directly from fetched GeoJSON
+const rdfType = DF.namedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+const decimal = value => DF.literal(String(value), DF.namedNode(`${prefixes.xsd}decimal`))
 
 // playgrounds
 
@@ -59,27 +66,34 @@ await engine.queryVoid(query, {
     destination: store
 })
 
-// toilets
+// toilets (WC-Standorte) — fetched live from the GeoJSON distribution, like the fountains below
 
+const toiletsRes = await fetch(TOILETS_GEOJSON_URL)
+const toiletsGeoJson = await toiletsRes.json()
+for (const feature of toiletsGeoJson.features) {
+    if (!feature.geometry?.coordinates) continue
+    const localId = String(feature.id).split(".").pop() // "wc_finder_opendata.1" -> "1"
+    const [lon, lat] = feature.geometry.coordinates     // GeoJSON in EPSG:4326 is [lon, lat]
+    const subject = DF.namedNode(`${prefixes.dev}wc_finder_opendata.${localId}`)
+    store.addQuad(DF.quad(subject, rdfType, DF.namedNode(`${prefixes.dev}PublicToilet`)))
+    store.addQuad(DF.quad(subject, DF.namedNode(`${prefixes.geo}lat`), decimal(lat)))
+    store.addQuad(DF.quad(subject, DF.namedNode(`${prefixes.geo}long`), decimal(lon)))
+}
+// stamp dct:modified onto the toilets from the distribution metadata snapshot
 query = `
     PREFIX dcat: <http://www.w3.org/ns/dcat#>
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX dev: <https://open.bydata.de/api/hub/dev#>
     INSERT {
-        ?toilet dct:modified ?modifiedDate ;
-            ?p ?o .
+        ?toilet dct:modified ?modifiedDate .
     } WHERE {
-        ?toilet a dev:PublicToilet ;
-            ?p ?o .
+        ?toilet a dev:PublicToilet .
         ?dist a dcat:Distribution ;
             dct:modified ?modified .
         BIND(xsd:date(?modified) AS ?modifiedDate)
     }`
 await engine.queryVoid(query, {
-    sources: [
-        { type: "file", value: TOILETS_TTL },
-        { type: "file", value: TOILETS_DISTRIBUTION_TTL }
-    ],
+    sources: [store, { type: "file", value: TOILETS_DISTRIBUTION_TTL }],
     destination: store
 })
 
@@ -114,8 +128,6 @@ for await (const q of quadStream) store.addQuad(q)
 
 // drinking fountains (Trinkbrunnen)
 
-const rdfType = DF.namedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-const decimal = value => DF.literal(String(value), DF.namedNode(`${prefixes.xsd}decimal`))
 const fountainsRes = await fetch(FOUNTAINS_GEOJSON_URL)
 const fountainsGeoJson = await fountainsRes.json()
 for (const feature of fountainsGeoJson.features) {

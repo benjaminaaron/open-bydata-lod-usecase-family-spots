@@ -16,7 +16,8 @@ Die Ergebnisse liefern eine praxisnahe, datenbasierte Entscheidungsgrundlage zur
     - Hier fand die CSV-zu-RDF-Konvertierung bereits im Rahmen eines Experimente-Skripts via CSVW statt und wurde wiederverwendet
   - [Datenlizenz Deutschland – Namensnennung – Version 2.0](https://www.govdata.de/dl-de/by-2-0)
 - Der Datensatz [WC-Standorte](https://open.bydata.de/datasets/80832bca-499b-4b24-bb41-9e77f0ef31ee) der LHM
-  - Hier fand die CSV-zu-RDF-Konvertierung ebenfalls bereits im Rahmen eines Skripts via CSVW (+ Postprocessing der Koordinaten) statt und wurde wiederverwendet
+  - Wird zur Bauzeit live über die GeoJSON-Distribution (WFS des Geoportals München) abgefragt; die Koordinaten kommen via `srsName=EPSG:4326` direkt in WGS84 und werden in `build-graph.js` nach RDF konvertiert
+  - Die DCAT-Metadaten der Distribution liegen als lokaler Snapshot in [`src/inputs/toilets-distribution.ttl`](src/inputs/toilets-distribution.ttl) (liefert das `dct:modified`)
   - [Datenlizenz Deutschland – Namensnennung – Version 2.0](https://www.govdata.de/dl-de/by-2-0)
 - Der Datensatz [Stadtplan der städtischen Trinkbrunnen](https://open.bydata.de/datasets/7e8484f0-12c2-40be-bd0c-cfe04f63a624) der LHM
   - Wird zur Bauzeit live über die GeoJSON-Distribution (WFS des Geoportals München) abgefragt; die Koordinaten kommen via `srsName=EPSG:4326` direkt in WGS84 und werden in `build-graph.js` nach RDF konvertiert
@@ -27,7 +28,7 @@ Die Ergebnisse liefern eine praxisnahe, datenbasierte Entscheidungsgrundlage zur
 
 ## Vorgehensweise
 
-[Transformation zu RDF und Verschmelzung](src/build-graph.js) zu einem [Wissensgraphen](src/triples.ttl). Dazu wurde ein in-memory Triple Store schrittweise angereichert mit den „RDFizierten“ Datensätzen (Spielplätze + Metadaten und WCs); die Café-Daten von OpenStreetMap wurden live per SPARQL CONSTRUCT überführt und die Trinkbrunnen der LHM live als GeoJSON abgefragt und direkt als Triples eingefügt. Comunica, das JavaScript-Framework, das hier für die Queries benutzt wurde, hat im Gegensatz zu Virtuoso keine nativen Geo-Funktionen eingebaut. Daher wurde eine Funktion zur Distanzberechnung per `extensionFunctions` direkt zur QueryEngine hinzugefügt, um sie dann aus der SPARQL-Query heraus nutzen zu können.
+[Transformation zu RDF und Verschmelzung](src/build-graph.js) zu einem [Wissensgraphen](src/triples.ttl). Dazu wurde ein in-memory Triple Store schrittweise angereichert mit den „RDFizierten“ Datensätzen (Spielplätze + Metadaten); die Café-Daten von OpenStreetMap wurden live per SPARQL CONSTRUCT überführt und die WCs sowie Trinkbrunnen der LHM live als GeoJSON (WFS des Geoportals München) abgefragt und direkt als Triples eingefügt. Comunica, das JavaScript-Framework, das hier für die Queries benutzt wurde, hat im Gegensatz zu Virtuoso keine nativen Geo-Funktionen eingebaut. Daher wurde eine Funktion zur Distanzberechnung per `extensionFunctions` direkt zur QueryEngine hinzugefügt, um sie dann aus der SPARQL-Query heraus nutzen zu können.
 
 Um Trios von Spielplätzen mit nahgelegenen Toiletten und Cafés zu finden, müssen in diesem Fall zwei Distanzen berechnet werden: Spielplatz zu Toilette und Spielplatz zu Café. Um die hierfür erforderliche Rechnenleistung zu minimieren, wurden die Distanzberechnungen auf zwei Queries aufgeteilt und die jeweiligen Treffer (Distanzen unter 200 m) an den Triples der Spielplätze „Hinweise“ angehängt: `dev:hasNearbyToilet` und `dev:hasNearbyCafe`. Analog dazu berechnet eine dritte Query die nahegelegenen Trinkbrunnen und hängt `dev:hasNearbyDrinkingFountain` an. Trinkbrunnen sind dabei kein hartes Kriterium, sondern eine Anreicherung: Ein Spielplatz qualifiziert sich weiterhin über Toilette + Café, und ein etwaiger Trinkbrunnen in der Nähe wird zusätzlich ausgewiesen.
 
@@ -40,30 +41,30 @@ dev:playground-1058109 a dev:Playground;
   geo:lat 48.1202667612206; geo:long 11.58083245436193;
   dev:playgroundTargetGroup "Schulkinder\r\nKleinkinder";
   dev:hasNearbyCafe osm:9362543034;
-  dev:hasNearbyToilet dev:wc_finder_opendata.210;
+  dev:hasNearbyToilet dev:wc_finder_opendata.44;
   dev:hasNearbyDrinkingFountain dev:trinkbrunnen.15.
 
 osm:9362543034 a dev:Cafe;
   schema:name "Poppi Farmer";
   geo:lat 48.11961926345; geo:long 11.58256660363.
 
-dev:wc_finder_opendata.210 a dev:PublicToilet;
-  geo:lat 48.121475803556606; geo:long 11.581485439799357.
+dev:wc_finder_opendata.44 a dev:PublicToilet;
+  geo:lat 48.12147584; geo:long 11.58148544.
 
 dev:trinkbrunnen.15 a dev:DrinkingFountain;
   schema:name "Bertschbrunnen";
   geo:lat 48.12152167; geo:long 11.58030462.
 ```
 
-Nun können die angereicherten Hinweise genutzt werden, um die Spielplätze einzusammeln ([SPARQL-Query](src/playgrounds-fulfilling-criteria.sparql)). Das Ergebnis sind 22 Spielplätze in München, die das Kernkriterium (Toilette + Café) erfüllen; bei 15 davon liegt zusätzlich ein städtischer Trinkbrunnen in der Nähe:
+Nun können die angereicherten Hinweise genutzt werden, um die Spielplätze einzusammeln ([SPARQL-Query](src/playgrounds-fulfilling-criteria.sparql)). Das Ergebnis sind 27 Spielplätze in München, die das Kernkriterium (Toilette + Café) erfüllen; bei 17 davon liegt zusätzlich ein städtischer Trinkbrunnen in der Nähe:
 
 | playground | lastUpdated | toilets | cafes | drinkingFountains |
 | --- | --- | --- | --- | --- |
-| Spielplatz "Kronepark, Am Nockherberg" | 2024-08-29 | wc_finder_opendata.210 | Schnecki Back&Bar, Mex Lounge, Poppi Farmer | Bertschbrunnen |
-| Spielplatz "Herkomerplatz" | 2024-08-29 | wc_finder_opendata.34 | Bistro+Cafe ÖQ | |
+| Spielplatz "Kronepark, Am Nockherberg" | 2024-08-29 | wc_finder_opendata.44 | Schnecki Back&Bar, Mex Lounge, Poppi Farmer | Bertschbrunnen |
+| Spielplatz "Herkomerplatz" | 2024-08-29 | wc_finder_opendata.126 | Bistro+Cafe ÖQ | |
 | … | … | … | … | … |
 
-Die genaue Anzahl kann leicht schwanken, da die Café-Daten live aus OpenStreetMap stammen (siehe Hinweis unten).
+Die genaue Anzahl kann leicht schwanken, da Café-, WC- und Trinkbrunnen-Daten live abgefragt werden (siehe Hinweis unten).
 
 Alle gefundenen Orte können in einer [Karte](src/map.html) eingesehen werden (erzeugt mit [map.js](src/map.js)) bzw. über den Screenshot unten. Zur Erklärung: Spielplätze sind gelb, Toiletten rot, Cafés blau und Trinkbrunnen grün. Manche Spots haben mehrere Toiletten, Cafés und Trinkbrunnen, die weniger als 200 m von „ihrem“ Spielplatz entfernt sind:
 
@@ -85,12 +86,12 @@ Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem 
 
 ```bash
 npm install
-node src/build-graph.js      # baut src/triples.ttl aus src/inputs/ + Cafés live via OpenStreetMap + Trinkbrunnen live via WFS der LHM
+node src/build-graph.js      # baut src/triples.ttl: Spielplätze aus src/inputs/, Cafés live via OSM, WCs + Trinkbrunnen live via WFS der LHM
 node src/map.js              # erzeugt src/map.html aus src/triples.ttl neu
 node src/map-interactive.js  # erzeugt src/map-interactive.html (interaktive Variante) aus src/triples.ttl
 ```
 
-`build-graph.js` liest die vorbereiteten Spielplatz- und WC-Daten samt zugehöriger DCAT-Metadaten aus [`src/inputs/`](src/inputs) und reichert sie um Cafés (live über den QLever-OSM-Endpunkt) und Trinkbrunnen (live über die GeoJSON-Distribution des Geoportals München) an. Die RDF-Konvertierung der Spielplatz- und WC-Daten fand bereits in einer früheren Projektphase statt, bevor dieses Repo für den Anwendungsfall eingerichtet wurde; die Trinkbrunnen werden hingegen zur Bauzeit konvertiert. Die DCAT-Metadaten liegen als lokale Snapshots in `src/inputs/`, da die zugehörigen open.bydata-Distributions-URLs nicht stabil sind (eine davon ist inzwischen nicht mehr abrufbar). Die Café- und Trinkbrunnen-Daten spiegeln den aktuellen Live-Stand wider und können daher leicht vom mitgelieferten Snapshot abweichen.
+`build-graph.js` liest die vorbereiteten Spielplatz-Daten samt zugehöriger DCAT-Metadaten aus [`src/inputs/`](src/inputs) und reichert sie live an: Cafés über den QLever-OSM-Endpunkt sowie WCs und Trinkbrunnen über die GeoJSON-Distributionen des Geoportals München (Koordinaten direkt in WGS84 via `srsName=EPSG:4326`). Die RDF-Konvertierung der Spielplatz-Daten fand bereits in einer früheren Projektphase statt, bevor dieses Repo für den Anwendungsfall eingerichtet wurde; WCs und Trinkbrunnen werden hingegen zur Bauzeit aus dem WFS konvertiert. Für die WC- und Trinkbrunnen-Datensätze liegt jeweils nur ein DCAT-Metadaten-Snapshot in `src/inputs/` (er liefert das `dct:modified`). Die live abgefragten Café-, WC- und Trinkbrunnen-Daten spiegeln den aktuellen Stand wider und können daher leicht vom mitgelieferten Graphen abweichen.
 
 ## Autoren
 Dieser Code wurde von [Benjamin Degenhart](https://github.com/benjaminaaron) in Zusammenarbeit mit oc.bydata erstellt.
