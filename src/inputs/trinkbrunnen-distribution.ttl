@@ -1,0 +1,15 @@
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Snapshot of the DCAT distribution metadata for the drinking-fountain dataset
+# "Stadtplan der städtischen Trinkbrunnen" of the Landeshauptstadt München
+# (open.bydata dataset 7e8484f0-12c2-40be-bd0c-cfe04f63a624, GeoJSON distribution
+# 093cb60a-ebc0-4120-a5f2-21a76b5712fa), captured locally.
+# build-graph.js fetches the fountain points live from the WFS but reads dct:modified
+# from here to stamp it onto the fountains — analogous to the playgrounds and toilets.
+# The GeoJSON distribution itself carries no dct:modified, so we use the dataset's
+# dct:modified date instead.
+<https://open.bydata.de/api/hub/repo/distributions/093cb60a-ebc0-4120-a5f2-21a76b5712fa>
+    a dcat:Distribution ;
+    dct:modified "2026-06-08T06:47:09Z"^^xsd:dateTime .

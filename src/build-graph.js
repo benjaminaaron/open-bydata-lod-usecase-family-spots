@@ -13,6 +13,13 @@ const PLAYGROUNDS_TTL = path.join(THIS_DIR, "inputs", "240826-spielplaetze.ttl")
 const PLAYGROUNDS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "playgrounds-distribution.ttl")
 const TOILETS_TTL = path.join(THIS_DIR, "inputs", "wc_finder_opendata_postprocessed.ttl")
 const TOILETS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "toilets-distribution.ttl")
+const FOUNTAINS_DISTRIBUTION_TTL = path.join(THIS_DIR, "inputs", "trinkbrunnen-distribution.ttl")
+// "Stadtplan der städtischen Trinkbrunnen" of the Landeshauptstadt München, fetched live
+// from the GeoJSON distribution (open.bydata dataset 7e8484f0-12c2-40be-bd0c-cfe04f63a624).
+// The WFS serves WGS84 lat/long directly when we request srsName=EPSG:4326.
+const FOUNTAINS_GEOJSON_URL = "https://geoportal.muenchen.de/geoserver/baug_wfs/ows"
+    + "?service=WFS&version=1.0.0&request=GetFeature&typeName=baug_wfs:trinkwasserbrunnen"
+    + "&outputFormat=application/json&srsName=EPSG:4326"
 const OSM_ENDPOINT = "https://qlever.dev/api/osm-planet"
 const OUTPUT_TTL = path.join(THIS_DIR, "triples.ttl")
 export const prefixes = {
@@ -104,7 +111,41 @@ query = `
     }`
 const quadStream = await engine.queryQuads(query, { sources: [{ type: "sparql", value: OSM_ENDPOINT }] })
 for await (const q of quadStream) store.addQuad(q)
-console.log("Done inserting playgrounds, toilets and cafes")
+
+// drinking fountains (Trinkbrunnen)
+
+const rdfType = DF.namedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+const decimal = value => DF.literal(String(value), DF.namedNode(`${prefixes.xsd}decimal`))
+const fountainsRes = await fetch(FOUNTAINS_GEOJSON_URL)
+const fountainsGeoJson = await fountainsRes.json()
+for (const feature of fountainsGeoJson.features) {
+    const localId = String(feature.id).split(".").pop() // "trinkwasserbrunnen.1" -> "1"
+    const [lon, lat] = feature.geometry.coordinates     // GeoJSON in EPSG:4326 is [lon, lat]
+    const subject = DF.namedNode(`${prefixes.dev}trinkbrunnen.${localId}`)
+    store.addQuad(DF.quad(subject, rdfType, DF.namedNode(`${prefixes.dev}DrinkingFountain`)))
+    store.addQuad(DF.quad(subject, DF.namedNode(`${prefixes.geo}lat`), decimal(lat)))
+    store.addQuad(DF.quad(subject, DF.namedNode(`${prefixes.geo}long`), decimal(lon)))
+    const name = feature.properties?.bezeichnung
+    if (name) store.addQuad(DF.quad(subject, DF.namedNode(`${prefixes.schema}name`), DF.literal(name)))
+}
+// stamp dct:modified onto the fountains from the distribution metadata snapshot (like toilets/playgrounds)
+query = `
+    PREFIX dcat: <http://www.w3.org/ns/dcat#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX dev: <https://open.bydata.de/api/hub/dev#>
+    INSERT {
+        ?fountain dct:modified ?modifiedDate .
+    } WHERE {
+        ?fountain a dev:DrinkingFountain .
+        ?dist a dcat:Distribution ;
+            dct:modified ?modified .
+        BIND(xsd:date(?modified) AS ?modifiedDate)
+    }`
+await engine.queryVoid(query, {
+    sources: [store, { type: "file", value: FOUNTAINS_DISTRIBUTION_TTL }],
+    destination: store
+})
+console.log("Done inserting playgrounds, toilets, cafes and drinking fountains")
 
 // calculate dev:hasNearbyToilet and dev:hasNearbyCafe
 
@@ -174,6 +215,32 @@ await engine.queryVoid(query, {
     extensionFunctions: { "https://open.bydata.de/api/hub/dev#calcDistance": calcDistanceExtension }
 })
 console.log("Query for nearby cafes done")
+
+query = `
+    PREFIX dev: <https://open.bydata.de/api/hub/dev#>
+    PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+    INSERT {
+        ?playground dev:hasNearbyDrinkingFountain ?fountain .
+    } WHERE {
+        ?playground a dev:Playground ;
+            dev:playgroundTargetGroup ?ptargetgroup ;
+            geo:lat ?plat ;
+            geo:long ?plon .
+        FILTER regex(?ptargetgroup, "kleinkinder", "i")
+
+        ?fountain a dev:DrinkingFountain ;
+            geo:lat ?flat ;
+            geo:long ?flon .
+
+        BIND(dev:calcDistance(?plat, ?plon, ?flat, ?flon) AS ?distPtoF)
+        FILTER(?distPtoF < ${MAX_DIST})
+    }`
+// only 116 fountains, so this is fast
+await engine.queryVoid(query, {
+    sources: [store],
+    extensionFunctions: { "https://open.bydata.de/api/hub/dev#calcDistance": calcDistanceExtension }
+})
+console.log("Query for nearby drinking fountains done")
 
 let turtle = await storeToTurtle(store, prefixes)
 fs.writeFileSync(OUTPUT_TTL, turtle, "utf8")

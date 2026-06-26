@@ -15,7 +15,7 @@ let query = `
     PREFIX dev: <https://open.bydata.de/api/hub/dev#>
     PREFIX geo: <http://www.w3.org/2003/01/geo/wgs84_pos#>
 
-    SELECT ?plat ?plon ?tlat ?tlon ?clat ?clon WHERE {
+    SELECT ?plat ?plon ?tlat ?tlon ?clat ?clon ?flat ?flon WHERE {
         ?playground a dev:Playground ;
             geo:lat ?plat ;
             geo:long ?plon ;
@@ -28,6 +28,13 @@ let query = `
 
         ?cafe geo:lat ?clat ;
             geo:long ?clon .
+
+        # drinking fountains are an enrichment, not a criterion -> OPTIONAL
+        OPTIONAL {
+            ?playground dev:hasNearbyDrinkingFountain ?fountain .
+            ?fountain geo:lat ?flat ;
+                geo:long ?flon .
+        }
     }`
 let bindingsStream = await engine.queryBindings(query,
     { sources: [{ type: "file", value: INPUT_TTL }] }
@@ -35,13 +42,17 @@ let bindingsStream = await engine.queryBindings(query,
 let rows = await bindingsStream.toArray()
 
 let points = []
-const pCol = "#ffff00"
-const tCol = "#ff0000"
-const cCol = "#0000ff"
+const pCol = "#ffff00" // playgrounds
+const tCol = "#ff0000" // toilets
+const cCol = "#0000ff" // cafes
+const fCol = "#00aa00" // drinking fountains
 for (const row of rows) {
     points.push({ lat: row.get("plat").value, lon: row.get("plon").value, color: pCol })
     points.push({ lat: row.get("tlat").value, lon: row.get("tlon").value, color: tCol })
     points.push({ lat: row.get("clat").value, lon: row.get("clon").value, color: cCol })
+    if (row.get("flat")) {
+        points.push({ lat: row.get("flat").value, lon: row.get("flon").value, color: fCol })
+    }
 }
 
 let html = fs.readFileSync(HTML_TEMPLATE, "utf8")

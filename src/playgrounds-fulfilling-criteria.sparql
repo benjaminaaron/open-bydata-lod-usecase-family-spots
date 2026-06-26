@@ -7,6 +7,7 @@ SELECT
     ?playgroundDataLastUpdated
     (GROUP_CONCAT(DISTINCT ?toiletId; separator=", ") AS ?toilets)
     (GROUP_CONCAT(DISTINCT ?cafeName; separator=", ") AS ?cafes)
+    (GROUP_CONCAT(DISTINCT ?fountainName; separator=", ") AS ?drinkingFountains)
 WHERE {
     ?p a dev:Playground ;
         dct:modified ?playgroundDataLastUpdated ;
@@ -17,5 +18,11 @@ WHERE {
     BIND(REPLACE(STR(?toilet), "^.*[#/]", "") AS ?toiletId)
 
     ?cafe schema:name ?cafeName .
+
+    # drinking fountains are an enrichment, not a criterion -> OPTIONAL
+    OPTIONAL {
+        ?p dev:hasNearbyDrinkingFountain ?fountain .
+        ?fountain schema:name ?fountainName .
+    }
 }
 GROUP BY ?playground ?playgroundDataLastUpdated

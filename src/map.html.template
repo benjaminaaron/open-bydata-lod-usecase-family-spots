@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>Playgrounds with toilets and cafes within 200m in Munich</title>
+        <title>Playgrounds with toilets and cafes (and nearby drinking fountains) within 200m in Munich</title>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
         <style>
             html, body, #map {
