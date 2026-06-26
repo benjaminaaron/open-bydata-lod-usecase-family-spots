@@ -65,15 +65,19 @@ Nun können die angereicherten Hinweise genutzt werden, um die Spielplätze einz
 
 Die genaue Anzahl kann leicht schwanken, da die Café-Daten live aus OpenStreetMap stammen (siehe Hinweis unten).
 
-Alle gefundenen Orte können in einer [interaktiven Karte](src/map.html) eingesehen werden (erzeugt mit [map.js](src/map.js)) bzw. über den Screenshot unten. Zur Erklärung: Spielplätze sind gelb, Toiletten rot, Cafés blau und Trinkbrunnen grün. Manche Spots haben mehrere Toiletten, Cafés und Trinkbrunnen, die weniger als 200 m von „ihrem“ Spielplatz entfernt sind:
+Alle gefundenen Orte können in einer [Karte](src/map.html) eingesehen werden (erzeugt mit [map.js](src/map.js)) bzw. über den Screenshot unten. Zur Erklärung: Spielplätze sind gelb, Toiletten rot, Cafés blau und Trinkbrunnen grün. Manche Spots haben mehrere Toiletten, Cafés und Trinkbrunnen, die weniger als 200 m von „ihrem“ Spielplatz entfernt sind:
 
 ![Familienfreundliche Spielplätze in München](img/screenshot.jpg)
+
+Über diese (statische) Karte hinaus gibt es eine [interaktive Variante](src/map-interactive.html) (erzeugt mit [map-interactive.js](src/map-interactive.js)), in der sich die Kriterien live einstellen lassen: Für Toiletten, Cafés und Trinkbrunnen kann jeweils zwischen *Erforderlich*, *Optional* und *Ausgeblendet* umgeschaltet werden, und der Umkreis ist per Schieberegler zwischen 50 und 500 m wählbar. Ein Spielplatz wird angezeigt, wenn er jede *erforderliche* Einrichtung innerhalb des Umkreises hat; *optionale* Einrichtungen werden zusätzlich eingeblendet, wenn sie in der Nähe liegen; *ausgeblendete* Typen bleiben außen vor. Die Voreinstellung (Toilette + Café *erforderlich*, Trinkbrunnen *optional*, 200 m) entspricht der statischen Analyse oben.
+
+Anders als die statische Karte nutzt diese Variante nicht die vorberechneten `dev:hasNearby*`-Kanten, sondern erhält die Rohpunkte (Spielplätze und Einrichtungen) aus dem Wissensgraphen und berechnet die Distanzen direkt im Browser (Haversine in JavaScript). So bleiben der Wissensgraph und die SPARQL-Distanzberechnung unverändert, während Umkreis und Kriterien interaktiv veränderbar sind.
 
 Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem Anwendungsfall findet man in [diesem Repo](https://github.com/bydata/open-bydata-lod-usecases).
 
 ## Code ausführen
 
-**Um die Ergebnisse zu sehen, muss nichts ausgeführt werden.** Die interaktive Karte (einfach [`src/map.html`](src/map.html) im Browser öffnen), der fertige Wissensgraph [`src/triples.ttl`](src/triples.ttl) und der Screenshot (siehe oben) liegen bereits im Repo.
+**Um die Ergebnisse zu sehen, muss nichts ausgeführt werden.** Die Karten (einfach [`src/map.html`](src/map.html) bzw. die interaktive Variante [`src/map-interactive.html`](src/map-interactive.html) im Browser öffnen), der fertige Wissensgraph [`src/triples.ttl`](src/triples.ttl) und der Screenshot (siehe oben) liegen bereits im Repo.
 
 **Queries selbst ausführen** (verändert nichts am Repo): Den Wissensgraphen [`src/triples.ttl`](src/triples.ttl) in eine Graph-Datenbank importieren und die Analyse-Query [`playgrounds-fulfilling-criteria.sparql`](src/playgrounds-fulfilling-criteria.sparql) im SPARQL-Editor der Graph-Datenbank ausführen.
 
@@ -81,8 +85,9 @@ Weitere Informationen über die Entstehungsgeschichte und den Kontext zu diesem 
 
 ```bash
 npm install
-node src/build-graph.js   # baut src/triples.ttl aus src/inputs/ + Cafés live via OpenStreetMap + Trinkbrunnen live via WFS der LHM
-node src/map.js           # erzeugt src/map.html aus src/triples.ttl neu
+node src/build-graph.js      # baut src/triples.ttl aus src/inputs/ + Cafés live via OpenStreetMap + Trinkbrunnen live via WFS der LHM
+node src/map.js              # erzeugt src/map.html aus src/triples.ttl neu
+node src/map-interactive.js  # erzeugt src/map-interactive.html (interaktive Variante) aus src/triples.ttl
 ```
 
 `build-graph.js` liest die vorbereiteten Spielplatz- und WC-Daten samt zugehöriger DCAT-Metadaten aus [`src/inputs/`](src/inputs) und reichert sie um Cafés (live über den QLever-OSM-Endpunkt) und Trinkbrunnen (live über die GeoJSON-Distribution des Geoportals München) an. Die RDF-Konvertierung der Spielplatz- und WC-Daten fand bereits in einer früheren Projektphase statt, bevor dieses Repo für den Anwendungsfall eingerichtet wurde; die Trinkbrunnen werden hingegen zur Bauzeit konvertiert. Die DCAT-Metadaten liegen als lokale Snapshots in `src/inputs/`, da die zugehörigen open.bydata-Distributions-URLs nicht stabil sind (eine davon ist inzwischen nicht mehr abrufbar). Die Café- und Trinkbrunnen-Daten spiegeln den aktuellen Live-Stand wider und können daher leicht vom mitgelieferten Snapshot abweichen.

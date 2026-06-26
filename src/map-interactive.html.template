@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <title>Familienfreundliches München – Spielplätze</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body, #map { height: 100%; margin: 0; }
+        #panel {
+            position: absolute; top: 10px; right: 10px; z-index: 1000; width: 246px;
+            background: rgba(255, 255, 255, 0.93); border-radius: 8px; padding: 9px 11px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+            font: 12px/1.4 system-ui, -apple-system, sans-serif; color: #222;
+        }
+        #panel .title { font-weight: 600; }
+        #panel .subtitle { font-size: 10px; color: #777; margin: 1px 0 8px; line-height: 1.3; }
+        #panel .dist { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+        #panel .dist input { flex: 1; }
+        #panel .dist .val { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #panel .dist.off { opacity: 0.4; }
+        #panel .hint { font-size: 10px; color: #777; margin: -2px 0 8px; line-height: 1.35; }
+        #panel .amenity { margin: 5px 0; }
+        #panel .amenity .lbl { margin-bottom: 2px; }
+        #panel .seg { display: flex; }
+        #panel .seg button {
+            flex: 1; font: 10px system-ui, sans-serif; padding: 3px 2px; border: 1px solid #ccc;
+            background: #f5f5f5; color: #444; cursor: pointer; margin-left: -1px;
+        }
+        #panel .seg button:first-child { border-radius: 4px 0 0 4px; margin-left: 0; }
+        #panel .seg button:last-child { border-radius: 0 4px 4px 0; }
+        #panel .seg button.active { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        #panel .count { margin: 8px 0 6px; }
+        #panel .count b { font-size: 14px; }
+        #panel .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 9px; font-size: 11px; color: #444; }
+        #panel .legend span { white-space: nowrap; }
+        #panel .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            margin-right: 3px; vertical-align: middle; border: 1px solid rgba(0,0,0,0.25); }
+        #panel .quellen { margin-top: 8px; font-size: 9px; line-height: 1.35; color: #999; }
+        #panel .quellen a { color: #999; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="panel">
+        <div class="title">Familienfreundliches München</div>
+        <div class="subtitle">Kleinkinder-Spielplätze mit öffentlichen Toiletten, Cafés und Trinkbrunnen in der Nähe</div>
+        <div class="dist">
+            <span>Umkreis</span>
+            <input type="range" id="dist" min="50" max="500" step="10" value="200" />
+            <span class="val" id="distval">200 m</span>
+        </div>
+        <div class="hint">Ausgangspunkt sind die Spielplätze; einstellbar sind nur die Einrichtungen: »Erforderlich« muss im Umkreis liegen, »Optional« wird nur angezeigt, »Ausgeblendet« wird ignoriert.</div>
+        <div class="amenity" data-type="toilet"><div class="lbl">Öffentliche Toiletten</div><div class="seg"></div></div>
+        <div class="amenity" data-type="cafe"><div class="lbl">Cafés</div><div class="seg"></div></div>
+        <div class="amenity" data-type="fountain"><div class="lbl">Trinkbrunnen</div><div class="seg"></div></div>
+        <div class="count"><b id="count">0</b> passende Spielplätze</div>
+        <div class="legend">
+            <span><i style="background:#ffff00"></i>Spielplatz</span>
+            <span><i style="background:#ff0000"></i>Toilette</span>
+            <span><i style="background:#0000ff"></i>Café</span>
+            <span><i style="background:#00aa00"></i>Trinkbrunnen</span>
+        </div>
+        <div class="quellen">Quellen:
+            <a href="https://open.bydata.de/datasets/0760ce3a-fef8-43e4-888f-8cc92fdf56de" target="_blank" rel="noopener">Spielplätze</a>,
+            <a href="https://open.bydata.de/datasets/80832bca-499b-4b24-bb41-9e77f0ef31ee" target="_blank" rel="noopener">WCs</a>,
+            <a href="https://open.bydata.de/datasets/7e8484f0-12c2-40be-bd0c-cfe04f63a624" target="_blank" rel="noopener">Trinkbrunnen</a>,
+            <a href="https://qlever.dev/osm-planet/?query=PREFIX+ogc%3A+%3Chttp%3A%2F%2Fwww.opengis.net%2Frdf%23%3E%0APREFIX+geo%3A+%3Chttp%3A%2F%2Fwww.opengis.net%2Font%2Fgeosparql%23%3E%0APREFIX+geof%3A+%3Chttp%3A%2F%2Fwww.opengis.net%2Fdef%2Ffunction%2Fgeosparql%2F%3E%0APREFIX+geo84%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F2003%2F01%2Fgeo%2Fwgs84_pos%23%3E%0APREFIX+osmkey%3A+%3Chttps%3A%2F%2Fwww.openstreetmap.org%2Fwiki%2FKey%3A%3E%0APREFIX+osmrel%3A+%3Chttps%3A%2F%2Fwww.openstreetmap.org%2Frelation%2F%3E%0APREFIX+schema%3A+%3Chttp%3A%2F%2Fschema.org%2F%3E%0ACONSTRUCT+%7B%0A++%3Fcafe+schema%3Aname+%3Fname+%3B%0A++++++++geo84%3Alat+%3Flat+%3B%0A++++++++geo84%3Alon+%3Flon+.%0A%7D%0AWHERE+%7B%0A++osmrel%3A62428+ogc%3AsfContains+%3Fcafe+.%0A++%3Fcafe+osmkey%3Aamenity+%22cafe%22+%3B%0A++++++++geo%3AhasGeometry%2Fgeo%3AasWKT+%3Fwkt+.%0A++OPTIONAL+%7B+%3Fcafe+osmkey%3Aname+%3Fname+%7D%0A++BIND%28geof%3Acentroid%28%3Fwkt%29+AS+%3Fpt%29%0A++BIND%28geof%3Alatitude%28%3Fpt%29++AS+%3Flat%29%0A++BIND%28geof%3Alongitude%28%3Fpt%29+AS+%3Flon%29%0A%7D" target="_blank" rel="noopener">Cafés</a>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const DATA = {
+            playground: {{PLAYGROUNDS}},
+            toilet: {{TOILETS}},
+            cafe: {{CAFES}},
+            fountain: {{FOUNTAINS}}
+        }
+        const AMENITIES = ["toilet", "cafe", "fountain"]
+        const COLORS = { playground: "#ffff00", toilet: "#ff0000", cafe: "#0000ff", fountain: "#00aa00" }
+        const FALLBACK = { toilet: "Toilette", cafe: "Café", fountain: "Trinkbrunnen" }
+        const MODES = [["erforderlich", "Erforderlich"], ["optional", "Optional"], ["ausgeblendet", "Ausgeblendet"]]
+        // defaults reproduce the static map: toilet + cafe required, fountain optional, 200 m
+        const state = { distance: 200, mode: { toilet: "erforderlich", cafe: "erforderlich", fountain: "optional" } }
+
+        function haversine(a, b) {
+            const R = 6371000, rad = x => x * Math.PI / 180
+            const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon)
+            const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2
+            return 2 * R * Math.asin(Math.sqrt(h))
+        }
+        const near = (a, b, d) => haversine(a, b) <= d
+
+        const map = L.map("map")
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map)
+        L.control.scale({ imperial: false }).addTo(map) // metric scale bar (bottom-left, clear of the attribution)
+        const playgroundLayer = L.layerGroup().addTo(map)
+        const amenityLayer = L.layerGroup().addTo(map)
+
+        function marker(point, color, label) {
+            const m = L.circleMarker([point.lat, point.lon],
+                { radius: 6, fillColor: color, color: "#333", weight: 1, fillOpacity: 1 })
+            if (label) m.bindPopup(label)
+            return m
+        }
+
+        let firstFit = true
+        function recompute() {
+            const d = state.distance
+            const required = AMENITIES.filter(t => state.mode[t] === "erforderlich")
+            const visible = AMENITIES.filter(t => state.mode[t] !== "ausgeblendet")
+
+            // when nothing is shown or required, the radius has no effect -> disable the slider
+            const radiusMatters = visible.length > 0
+            dist.disabled = !radiusMatters
+            dist.parentElement.classList.toggle("off", !radiusMatters)
+
+            // 1) a playground is shown if it has >=1 of every *required* amenity within d
+            const shown = DATA.playground.filter(pg => required.every(t => DATA[t].some(a => near(pg, a, d))))
+
+            playgroundLayer.clearLayers()
+            amenityLayer.clearLayers()
+            for (const pg of shown) marker(pg, COLORS.playground, pg.name).addTo(playgroundLayer)
+
+            // 2) draw each visible amenity that is within d of a shown playground
+            for (const t of visible) {
+                for (const a of DATA[t]) {
+                    if (shown.some(pg => near(pg, a, d))) marker(a, COLORS[t], a.name || FALLBACK[t]).addTo(amenityLayer)
+                }
+            }
+
+            document.getElementById("count").textContent = shown.length
+            if (firstFit) {
+                // frame the matching playgrounds (or all of them if nothing matches yet)
+                const fitTo = shown.length ? shown : DATA.playground
+                map.fitBounds(L.featureGroup(fitTo.map(p => L.circleMarker([p.lat, p.lon]))).getBounds().pad(0.2))
+                firstFit = false
+            }
+        }
+
+        // build the per-amenity Erforderlich/Optional/Ausgeblendet toggles
+        for (const row of document.querySelectorAll(".amenity")) {
+            const type = row.dataset.type
+            const seg = row.querySelector(".seg")
+            for (const [value, label] of MODES) {
+                const btn = document.createElement("button")
+                btn.textContent = label
+                if (state.mode[type] === value) btn.classList.add("active")
+                btn.onclick = () => {
+                    state.mode[type] = value
+                    for (const b of seg.children) b.classList.toggle("active", b === btn)
+                    recompute()
+                }
+                seg.appendChild(btn)
+            }
+        }
+        const dist = document.getElementById("dist")
+        dist.oninput = () => {
+            state.distance = +dist.value
+            document.getElementById("distval").textContent = dist.value + " m"
+            recompute()
+        }
+
+        recompute() // first run frames the matching playgrounds (see firstFit above)
+    </script>
+</body>
+</html>
