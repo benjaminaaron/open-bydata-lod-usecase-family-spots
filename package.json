@@ -1,6 +1,12 @@
 {
   "name": "open-bydata-lod-usecase-family-spots",
   "type": "module",
+  "scripts": {
+    "build-graph": "node src/build-graph.js",
+    "map": "node src/map.js",
+    "map-interactive": "node src/map-interactive.js",
+    "build": "npm run build-graph && npm run map && npm run map-interactive"
+  },
   "dependencies": {
     "@comunica/query-sparql-file": "^4.5.0",
     "@foerderfunke/sem-ops-utils": "0.3.8",
